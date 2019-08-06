@@ -91,7 +91,7 @@ final class CollectionSchemaGenerator implements SchemaGeneratorInterface, Schem
 
         $schema = json_encode($schema);
 
-        return (array) json_decode(str_replace("%7Bid%7D$", "[1-9]", $schema));
+        return (array) json_decode(str_replace("%7Bid%7D$", "*", $schema));
     }
 }
 
