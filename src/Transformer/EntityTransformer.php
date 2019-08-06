@@ -66,6 +66,11 @@ final class EntityTransformer implements TransformerInterface
         $classMetadata = $em->getClassMetadata($className);
         foreach ($classMetadata->getFieldNames() as $fieldName) {
             $type = ($classMetadata->getFieldMapping($fieldName)['type'] ?? null);
+
+            if (is_int($value)) {
+                $type = 'integer';
+            }
+
             switch ($type) {
                 default:
                     $type = 'not-supported';
