@@ -40,12 +40,12 @@ final class CollectionSchemaGenerator implements SchemaGeneratorInterface, Schem
         $this->helper = $helper;
     }
 
-    public function setRouter(RouterInterface $router): void
+    public function setRouter(RouterInterface $router)
     {
         $this->router = $router;
     }
 
-    public function setMetadataFactory(ResourceMetadataFactoryInterface $metadataFactory): void
+    public function setMetadataFactory(ResourceMetadataFactoryInterface $metadataFactory)
     {
         $this->metadataFactory = $metadataFactory;
     }
@@ -57,7 +57,7 @@ final class CollectionSchemaGenerator implements SchemaGeneratorInterface, Schem
 
     public function generate(\ReflectionClass $reflectionClass, array $context = []): array
     {
-        $resourceMetadata = $this->metadataFactory->create($reflectionClass->getName());
+        $resourceMetadata = $this->metadataFactory->create($reflectionClass->name);
         $normalizationContext = $resourceMetadata->getCollectionOperationAttribute('get', 'normalization_context', [], true);
 
         $schema = [
@@ -89,9 +89,6 @@ final class CollectionSchemaGenerator implements SchemaGeneratorInterface, Schem
             $schema['required'][] = 'hydra:totalItems';
         }
 
-        $schema = json_encode($schema);
-
-        return (array) json_decode(str_replace("%7Bid%7D$", "[1-9]", $schema));
+        return $schema;
     }
 }
-

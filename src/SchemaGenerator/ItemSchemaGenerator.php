@@ -27,7 +27,7 @@ final class ItemSchemaGenerator implements SchemaGeneratorInterface, SchemaGener
      */
     private $router;
 
-    public function setRouter(RouterInterface $router): void
+    public function setRouter(RouterInterface $router)
     {
         $this->router = $router;
     }
@@ -41,7 +41,7 @@ final class ItemSchemaGenerator implements SchemaGeneratorInterface, SchemaGener
     {
         unset($context['root'], $context['collection']);
 
-        $schema = array_merge_recursive($this->schemaGenerator->generate($reflectionClass, $context), [
+        return array_merge_recursive($this->schemaGenerator->generate($reflectionClass, $context), [
             'properties' => [
                 '@context' => [
                     'type' => 'string',
@@ -50,10 +50,5 @@ final class ItemSchemaGenerator implements SchemaGeneratorInterface, SchemaGener
             ],
             'required' => ['@context'],
         ]);
-
-        $schema = json_encode($schema);
-
-        return (array) json_decode(str_replace("%7Bid%7D$", "[1-9]", $schema));
     }
 }
-
