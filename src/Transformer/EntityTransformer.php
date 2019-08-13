@@ -36,19 +36,19 @@ final class EntityTransformer implements TransformerInterface
      */
     private $iriConverter;
 
-    public function setRegistry(ManagerRegistry $registry)
+    public function setRegistry(ManagerRegistry $registry): void
     {
         $this->registry = $registry;
     }
 
-    public function setIriConverter(IriConverterInterface $iriConverter)
+    public function setIriConverter(IriConverterInterface $iriConverter): void
     {
         $this->iriConverter = $iriConverter;
     }
 
     public function supports(array $mapping, $value): bool
     {
-        return null !== $mapping['targetEntity'] && \in_array($mapping['type'], [ClassMetadataInfo::ONE_TO_ONE, ClassMetadataInfo::MANY_TO_ONE], true);
+        return null !== $mapping['targetEntity'] && in_array($mapping['type'], [ClassMetadataInfo::ONE_TO_ONE, ClassMetadataInfo::MANY_TO_ONE], true);
     }
 
     public function toObject(array $mapping, $value)
@@ -66,47 +66,19 @@ final class EntityTransformer implements TransformerInterface
         $classMetadata = $em->getClassMetadata($className);
         foreach ($classMetadata->getFieldNames() as $fieldName) {
             $type = ($classMetadata->getFieldMapping($fieldName)['type'] ?? null);
-
-            if (is_int($value)) {
-                $type = 'integer';
-            }
-
             switch ($type) {
-                default:
-                    $type = 'not-supported';
-                    break;
-                case Type::STRING:
                 case Type::TEXT:
                     $type = 'string';
                     break;
-                case Type::GUID:
-                    // Support for PostgreSQL native type
-                    if (!\preg_match('/^(\{{0,1}([0-9a-fA-F]){8}-([0-9a-fA-F]){4}-([0-9a-fA-F]){4}-([0-9a-fA-F]){4}-([0-9a-fA-F]){12}\}{0,1})$/', $value)) {
-                        $type = 'invalid';
-                    }
-                    break;
-                case Type::DATE:
-                case Type::DATETIME:
-                case Type::DATETIMETZ:
-                    // Support for PostgreSQL native type
-                    if (!\preg_match('/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])/', $value)) {
-                        $type = 'invalid';
-                    }
-                    break;
-                case Type::FLOAT:
                 case Type::DECIMAL:
                     $type = 'float';
                     break;
-                case Type::BOOLEAN:
-                    $type = 'boolean';
-                    break;
                 case Type::SMALLINT:
                 case Type::BIGINT:
-                case 'integer':
                     $type = 'integer';
                     break;
             }
-            if (\gettype($value) === $type) {
+            if (gettype($value) === $type) {
                 $queryBuilder->orWhere("o.$fieldName = :query")->setParameter('query', $value);
             }
         }
@@ -116,10 +88,10 @@ final class EntityTransformer implements TransformerInterface
 
     public function toScalar(array $mapping, $value)
     {
-        if (\is_array($value)) {
+        if (is_array($value)) {
             return $value;
         }
-        if (!\is_object($value)) {
+        if (!is_object($value)) {
             $value = $this->toObject($mapping, $value);
             if (null === $value) {
                 throw new EntityNotFoundException(sprintf('Unable to find an existing object of class %s with any value equal to %s.', $mapping['targetEntity'], $value));
