@@ -61,32 +61,31 @@ final class Populator
         $this->transformer = $transformer;
     }
 
-    public function setMetadataFactory(ResourceMetadataFactoryInterface $metadataFactory)
+    public function setMetadataFactory(ResourceMetadataFactoryInterface $metadataFactory): void
     {
         $this->metadataFactory = $metadataFactory;
     }
 
-    public function setPropertyInfo(PropertyInfoExtractorInterface $propertyInfo)
+    public function setPropertyInfo(PropertyInfoExtractorInterface $propertyInfo): void
     {
         $this->propertyInfo = $propertyInfo;
     }
 
-    public function setAnnotationReader(Reader $annotationReader)
+    public function setAnnotationReader(Reader $annotationReader): void
     {
         $this->annotationReader = $annotationReader;
     }
 
-    public function setRegistry(ManagerRegistry $registry)
+    public function setRegistry(ManagerRegistry $registry): void
     {
         $this->registry = $registry;
     }
 
     public function getObject(\ReflectionClass $reflectionClass, array $values = [])
     {
-        $className = $reflectionClass->name;
+        $className = $reflectionClass->getName();
 
-        // Complete required properties & init object
-        $object = $reflectionClass->newInstance();
+        // Complete required properties
         /** @var ClassMetadataInfo $classMetadata */
         $classMetadata = $this->registry->getManagerForClass($className)->getClassMetadata($className);
         foreach (array_merge($classMetadata->getFieldNames(), $classMetadata->getAssociationNames()) as $property) {
@@ -95,23 +94,17 @@ final class Populator
             if (array_key_exists($property, $values) || $mapping['nullable'] || ($classMetadata->isIdentifier($property) && $classMetadata->hasField($property))) {
                 continue;
             }
-            if ($reflectionClass->hasProperty($property)) {
-                $reflectionProperty = $reflectionClass->getProperty($property);
-                $reflectionProperty->setAccessible(true);
-                if ($reflectionProperty->getValue($object)) {
-                    continue;
-                }
-            }
             $values[$property] = $this->guesser->getValue($mapping);
         }
 
-        // Parse values
+        // Parse values & init object
+        $object = $reflectionClass->newInstance();
         foreach ($values as $property => $value) {
             $value = $this->transformer->toObject($this->getMapping($classMetadata, $property), $value);
             if ($reflectionClass->hasMethod($property)) {
-                \call_user_func([$object, $property], $value);
+                call_user_func([$object, $property], $value);
             } elseif ($reflectionClass->hasMethod('set'.Inflector::camelize($property))) {
-                \call_user_func([$object, 'set'.Inflector::camelize($property)], $value);
+                call_user_func([$object, 'set'.Inflector::camelize($property)], $value);
             } elseif ($reflectionClass->hasProperty($property)) {
                 $reflectionProperty = $reflectionClass->getProperty($property);
                 $reflectionProperty->setAccessible(true);
@@ -124,30 +117,28 @@ final class Populator
         return $object;
     }
 
-    public function getRequestData(\ReflectionClass $reflectionClass, string $operation, array $values = [], array $extraGroups = []): array
+    public function getRequestData(\ReflectionClass $reflectionClass, string $operation, array $values = []): array
     {
-        $className = $reflectionClass->name;
+        $className = $reflectionClass->getName();
 
         // Get serialization groups
         $resourceMetadata = $this->metadataFactory->create($className);
+        $collectionOperations = $this->filterOperations($resourceMetadata->getCollectionOperations() ?: ['get', 'post'], $operation);
         $itemOperations = $this->filterOperations($resourceMetadata->getItemOperations() ?: ['get', 'put', 'delete'], $operation);
-        if (0 < \count($itemOperations)) {
+        if (0 < count($itemOperations)) {
             $methodName = 'getItemOperationAttribute';
         } else {
             $methodName = 'getCollectionOperationAttribute';
         }
-        $groups = array_merge($extraGroups, \call_user_func([$resourceMetadata, $methodName], $operation, 'denormalization_context', [], true)['groups'] ?? []);
-        $validationGroups = \call_user_func([$resourceMetadata, $methodName], $operation, 'validation_groups', ['Default'], true);
-        if (\is_string($validationGroups)) {
-            $validationGroups = [];
-        }
+        $groups = call_user_func([$resourceMetadata, $methodName], $operation, 'denormalization_context', [], true)['groups'] ?? [];
+        $validationGroups = call_user_func([$resourceMetadata, $methodName], $operation, 'validation_groups', ['Default'], true);
         $originalValues = $values;
 
         // Complete required properties
         /** @var ClassMetadataInfo $classMetadata */
         $classMetadata = $this->registry->getManagerForClass($className)->getClassMetadata($className);
-        foreach ($this->propertyInfo->getProperties($className, $groups ? ['serializer_groups' => $groups] : []) as $property) {
-            if (!$reflectionClass->hasProperty($property) || !$this->isRequired($reflectionClass->getProperty($property), $validationGroups) || array_key_exists($property, $values) || ('put' === $operation && 0 < \count($originalValues))) {
+        foreach ($this->propertyInfo->getProperties($className, ['serializer_groups' => $groups ?? []]) as $property) {
+            if (!$this->isRequired($reflectionClass->getProperty($property), $validationGroups) || array_key_exists($property, $values) || ('put' === $operation && 0 < count($originalValues))) {
                 continue;
             }
             $values[$property] = $this->guesser->getValue($this->getMapping($classMetadata, $property));
@@ -229,23 +220,23 @@ final class Populator
     private function isRequired(\ReflectionProperty $reflectionProperty, $groups): bool
     {
         /** @var ClassMetadataInfo $classMetadata */
-        $className = $reflectionProperty->getDeclaringClass()->name;
+        $className = $reflectionProperty->getDeclaringClass()->getName();
         $classMetadata = $this->registry->getManagerForClass($className)->getClassMetadata($className);
 
         foreach ([NotBlank::class, NotNull::class, Count::class] as $class) {
             $annotation = $this->annotationReader->getPropertyAnnotation($reflectionProperty, $class);
-            if ($annotation && 0 < \count(array_intersect($annotation->groups, $groups))) {
+            if ($annotation && 0 < count(array_intersect($annotation->groups, $groups))) {
                 return true;
             }
         }
 
-        return !($this->getMapping($classMetadata, $reflectionProperty->name)['nullable'] ?? false);
+        return !($this->getMapping($classMetadata, $reflectionProperty->getName())['nullable'] ?? false);
     }
 
     private function filterOperations(array $operations, string $operation): array
     {
         return array_filter($operations, function ($value, $key) use ($operation) {
-            return $operation === (\is_int($key) ? $value : $key);
+            return $operation === (is_int($key) ? $value : $key);
         }, ARRAY_FILTER_USE_BOTH);
     }
 }
