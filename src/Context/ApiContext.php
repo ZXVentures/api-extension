@@ -35,7 +35,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  */
 final class ApiContext implements Context
 {
-    const FORMAT = 'application/ld+json';
+    public const FORMAT = 'application/ld+json';
 
     /**
      * @var RestContext
@@ -81,16 +81,16 @@ final class ApiContext implements Context
     /**
      * @When /^I get a list of (?P<name>[\w\-]+)$/
      */
-    public function sendGetRequestToCollection(string $name)
+    public function sendGetRequestToCollection(string $name): void
     {
         $this->restContext->iAddHeaderEqualTo('Accept', self::FORMAT);
         $this->restContext->iSendARequestTo('GET', $this->helper->getUri($this->helper->getReflectionClass($name)));
     }
 
     /**
-     * @When /^I get a list of (?P<name>[\w\-]+) (?:filtered|ordered) by (?P<filters>.*)$/
+     * @When /^I get a list of (?P<name>[\w\-]+) filtered by (?P<filters>[\w\-=&]+)$/
      */
-    public function sendGetRequestToCollectionWithFilters(string $name, string $filters = null)
+    public function sendGetRequestToCollectionWithFilters(string $name, string $filters = null): void
     {
         $this->restContext->iAddHeaderEqualTo('Accept', self::FORMAT);
         $this->restContext->iSendARequestTo('GET', $this->helper->getUri($this->helper->getReflectionClass($name))."?$filters");
@@ -99,7 +99,7 @@ final class ApiContext implements Context
     /**
      * @When /^I get (?:a|an) (?P<name>[\w\-]+)$/
      */
-    public function sendGetRequestToItem(string $name, array $ids = null)
+    public function sendGetRequestToItem(string $name, ?array $ids = null): void
     {
         $this->restContext->iAddHeaderEqualTo('Accept', self::FORMAT);
         $this->restContext->iSendARequestTo('GET', $this->helper->getItemUri($this->helper->getReflectionClass($name), $ids));
@@ -116,7 +116,7 @@ final class ApiContext implements Context
     /**
      * @When /^I delete (?:a|an) (?P<name>[\w\-]+)$/
      */
-    public function sendDeleteRequestToItem(string $name, array $ids = null)
+    public function sendDeleteRequestToItem(string $name, ?array $ids = null): void
     {
         $this->restContext->iAddHeaderEqualTo('Accept', self::FORMAT);
         $this->restContext->iSendARequestTo('DELETE', $this->helper->getItemUri($this->helper->getReflectionClass($name), $ids));
@@ -125,16 +125,15 @@ final class ApiContext implements Context
     /**
      * @When /^I delete the (?P<name>[\w\-]+) (?P<value>[^ ]+)$/
      */
-    public function sendDeleteRequestToDesignatedItem(string $name, string $value)
+    public function sendDeleteRequestToDesignatedItem(string $name, string $value): void
     {
         $this->sendDeleteRequestToItem($name, $this->helper->getObjectIdentifiers($this->findObject($name, $value)));
     }
 
     /**
      * @When /^I update (?:a|an) (?P<name>[\w\-]+)(?: with:)?$/
-     * @When /^I update (?:a|an) (?P<name>[\w\-]+) using (?:group|groups) (?P<groups>[\w_,]+)(?: with:)?$/
      */
-    public function sendPutRequestToItem(string $name, $data = null, array $ids = null, $groups = '')
+    public function sendPutRequestToItem(string $name, $data = null, array $ids = null): void
     {
         $reflectionClass = $this->helper->getReflectionClass($name);
         $values = [];
@@ -145,7 +144,7 @@ final class ApiContext implements Context
                 $values = array_combine(array_shift($rows), $rows[0]);
             }
         }
-        $this->lastRequestJson = $this->populator->getRequestData($reflectionClass, 'put', $values, array_filter(explode(', ', $groups)));
+        $this->lastRequestJson = $this->populator->getRequestData($reflectionClass, 'put', $values);
         $this->restContext->iAddHeaderEqualTo('Accept', self::FORMAT);
         $this->restContext->iAddHeaderEqualTo('Content-Type', self::FORMAT);
         $this->restContext->iSendARequestToWithBody('PUT', $this->helper->getItemUri($reflectionClass, $ids), new PyStringNode([json_encode($this->lastRequestJson)], 0));
@@ -153,18 +152,16 @@ final class ApiContext implements Context
 
     /**
      * @When /^I update the (?P<name>[\w\-]+) (?P<value>[^ ]+)(?: with:)?$/
-     * @When /^I update the (?P<name>[\w\-]+) (?P<value>[^ ]+) using (?:group|groups) (?P<groups>[\w_,]+)(?: with:)?$/
      */
-    public function sendPutRequestToDesignatedItem(string $name, string $value, $data = null, $groups = '')
+    public function sendPutRequestToDesignatedItem(string $name, string $value, $data = null): void
     {
-        $this->sendPutRequestToItem($name, $data, $this->helper->getObjectIdentifiers($this->findObject($name, $value)), $groups);
+        $this->sendPutRequestToItem($name, $data, $this->helper->getObjectIdentifiers($this->findObject($name, $value)));
     }
 
     /**
      * @When /^I create (?:a|an) (?P<name>[\w\-]+)(?: with:)?$/
-     * @When /^I create (?:a|an) (?P<name>[\w\-]+) using (?:group|groups) (?P<groups>[\w_,]+)(?: with:)?$/
      */
-    public function sendPostRequestToCollection(string $name, $data = null, $groups = '')
+    public function sendPostRequestToCollection(string $name, $data = null): void
     {
         $reflectionClass = $this->helper->getReflectionClass($name);
         $values = [];
@@ -175,7 +172,7 @@ final class ApiContext implements Context
                 $values = array_combine(array_shift($rows), $rows[0]);
             }
         }
-        $this->lastRequestJson = $this->populator->getRequestData($reflectionClass, 'post', $values, array_filter(explode(', ', $groups)));
+        $this->lastRequestJson = $this->populator->getRequestData($reflectionClass, 'post', $values);
         $this->restContext->iAddHeaderEqualTo('Accept', self::FORMAT);
         $this->restContext->iAddHeaderEqualTo('Content-Type', self::FORMAT);
         $this->restContext->iSendARequestToWithBody('POST', $this->helper->getUri($reflectionClass), new PyStringNode([json_encode($this->lastRequestJson)], 0));
@@ -186,6 +183,7 @@ final class ApiContext implements Context
      */
     public function iGetTheApiDocInFormat(string $format)
     {
+        // todo Do not hard-code url
         $this->restContext->iSendARequestTo('GET', $this->helper->getUrl('api_doc', ['_format' => $format]));
     }
 
@@ -260,7 +258,7 @@ JSON
     /**
      * @Then the request is invalid
      */
-    public function responseStatusCodeShouldBe400()
+    public function responseStatusCodeShouldBe400(): void
     {
         $this->minkContext->assertResponseStatus(400);
         $this->jsonContext->theResponseShouldBeInJson();
@@ -270,7 +268,7 @@ JSON
     /**
      * @Then /^the (?:.*) is not found$/
      */
-    public function responseStatusCodeShouldBe404()
+    public function responseStatusCodeShouldBe404(): void
     {
         $this->minkContext->assertResponseStatus(404);
     }
@@ -278,7 +276,7 @@ JSON
     /**
      * @Then the method is not allowed
      */
-    public function responseStatusCodeShouldBe405()
+    public function responseStatusCodeShouldBe405(): void
     {
         $this->minkContext->assertResponseStatus(405);
     }
@@ -286,9 +284,10 @@ JSON
     /**
      * @Then /^the (?P<name>[\w\_]+) has been successfully deleted$/
      */
-    public function itemShouldHaveBeSuccessfullyDeleted()
+    public function itemShouldHaveBeSuccessfullyDeleted(string $name): void
     {
         $this->minkContext->assertResponseStatus(204);
+        // todo Ensure object has been deleted from database
     }
 
     /**
@@ -310,7 +309,7 @@ JSON
     /**
      * @Then /^I see (?:a|an) (?P<name>[\w\-]+)$/
      */
-    public function validateItemJsonSchema(string $name, $schema = null)
+    public function validateItemJsonSchema(string $name, $schema = null): void
     {
         $statusCode = $this->minkContext->getSession()->getStatusCode();
         if (200 > $statusCode || 300 <= $statusCode) {
@@ -320,14 +319,7 @@ JSON
         if (null === $schema) {
             $schema = $this->schemaGenerator->generate($this->helper->getReflectionClass($name), ['collection' => false, 'root' => true]);
         }
-
-        if (\is_array($schema)) {
-            $schema = json_encode($schema);
-        }
-
-        $schema = str_replace("*$", "*", str_replace("%7Bid%7D", "*", $schema));
-
-        $this->jsonContext->theJsonShouldBeValidAccordingToThisSchema(new PyStringNode([$schema], 0));
+        $this->jsonContext->theJsonShouldBeValidAccordingToThisSchema(new PyStringNode([is_array($schema) ? json_encode($schema) : $schema], 0));
     }
 
     /**
@@ -340,9 +332,9 @@ JSON
 
     /**
      * @Then /^I see a list of (?P<name>[\w\-]+)$/
-     * @Then /^I see a list of (?P<total>\d+) (?P<name>[\w\-]+)$/
+     * @Then /^I see a list of (?P<total>\d+)  (?P<name>[\w\-]+)$/
      */
-    public function validateCollectionJsonSchema(string $name, int $total = null, $schema = null)
+    public function validateCollectionJsonSchema(string $name, int $total = null, $schema = null): void
     {
         $statusCode = $this->minkContext->getSession()->getStatusCode();
         if (200 > $statusCode || 300 <= $statusCode) {
@@ -352,14 +344,7 @@ JSON
         if (null === $schema) {
             $schema = $this->schemaGenerator->generate($this->helper->getReflectionClass($name), ['collection' => true, 'root' => true]);
         }
-
-        if (\is_array($schema)) {
-            $schema = json_encode($schema);
-        }
-
-        $schema = str_replace("*$", "*", str_replace("%7Bid%7D", "*", $schema));
-
-        $this->jsonContext->theJsonShouldBeValidAccordingToThisSchema(new PyStringNode([$schema], 0));
+        $this->jsonContext->theJsonShouldBeValidAccordingToThisSchema(new PyStringNode([is_array($schema) ? json_encode($schema) : $schema], 0));
         if (null !== $total) {
             $this->jsonContext->theJsonNodeShouldHaveElements('hydra:member', $total);
         }
@@ -368,7 +353,7 @@ JSON
     /**
      * @Then /^I don't see any (?P<name>[\w\-]+)$/
      */
-    public function validateCollectionIsEmpty(string $name)
+    public function validateCollectionIsEmpty(string $name): void
     {
         $this->validateCollectionJsonSchema($name, 0);
     }
@@ -376,7 +361,7 @@ JSON
     /**
      * @Then /^print (?P<name>[\w\-]+) list JSON schema$/
      */
-    public function printCollectionJsonSchema(string $name)
+    public function printCollectionJsonSchema(string $name): void
     {
         echo json_encode($this->schemaGenerator->generate($this->helper->getReflectionClass($name), ['collection' => true, 'root' => true]), JSON_PRETTY_PRINT);
     }
@@ -384,7 +369,7 @@ JSON
     /**
      * @Then /^print (?P<name>[\w\-]+) item JSON schema$/
      */
-    public function printItemJsonSchema(string $name)
+    public function printItemJsonSchema(string $name): void
     {
         echo json_encode($this->schemaGenerator->generate($this->helper->getReflectionClass($name), ['collection' => false, 'root' => true]), JSON_PRETTY_PRINT);
     }
@@ -392,7 +377,7 @@ JSON
     /**
      * @Then /^print last JSON request$/
      */
-    public function printJsonData()
+    public function printJsonData(): void
     {
         echo json_encode($this->lastRequestJson, JSON_PRETTY_PRINT);
     }
@@ -400,9 +385,9 @@ JSON
     private function findObject(string $name, $value)
     {
         $reflectionClass = $this->helper->getReflectionClass($name);
-        $object = $this->transformer->toObject(['targetEntity' => $reflectionClass->name, 'type' => ClassMetadataInfo::ONE_TO_ONE], $value);
+        $object = $this->transformer->toObject(['targetEntity' => $reflectionClass->getName(), 'type' => ClassMetadataInfo::ONE_TO_ONE], $value);
         if (null === $object) {
-            throw new EntityNotFoundException(sprintf('Unable to find an existing object of class %s with any value equal to %s.', $reflectionClass->name, $value));
+            throw new EntityNotFoundException(sprintf('Unable to find an existing object of class %s with any value equal to %s.', $reflectionClass->getName(), $value));
         }
 
         return $object;
