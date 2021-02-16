@@ -92,7 +92,7 @@ final class Populator
         foreach (array_merge($classMetadata->getFieldNames(), $classMetadata->getAssociationNames()) as $property) {
             $mapping = $this->getMapping($classMetadata, $property);
             // Property is already filled, or is not required, or a primary key (except for association primary key)
-            if (array_key_exists($property, $values) || $mapping['nullable'] || ($classMetadata->isIdentifier($property) && $classMetadata->hasField($property))) {
+            if (\array_key_exists($property, $values) || $mapping['nullable'] || ($classMetadata->isIdentifier($property) && $classMetadata->hasField($property))) {
                 continue;
             }
             if ($reflectionClass->hasProperty($property)) {
@@ -147,7 +147,7 @@ final class Populator
         /** @var ClassMetadataInfo $classMetadata */
         $classMetadata = $this->registry->getManagerForClass($className)->getClassMetadata($className);
         foreach ($this->propertyInfo->getProperties($className, $groups ? ['serializer_groups' => $groups] : []) as $property) {
-            if (!$reflectionClass->hasProperty($property) || !$this->isRequired($reflectionClass->getProperty($property), $validationGroups) || array_key_exists($property, $values) || ('put' === $operation && 0 < \count($originalValues))) {
+            if (!$reflectionClass->hasProperty($property) || !$this->isRequired($reflectionClass->getProperty($property), $validationGroups) || \array_key_exists($property, $values) || ('put' === $operation && 0 < \count($originalValues))) {
                 continue;
             }
             $values[$property] = $this->guesser->getValue($this->getMapping($classMetadata, $property));
@@ -182,7 +182,7 @@ final class Populator
             $this->mapping[$className][$fieldName] = $classMetadata->getFieldMapping($fieldName);
         }
         foreach ($this->propertyInfo->getProperties($className) as $fieldName) {
-            if (array_key_exists($fieldName, $this->mapping[$className])) {
+            if (\array_key_exists($fieldName, $this->mapping[$className])) {
                 continue;
             }
 
@@ -246,6 +246,6 @@ final class Populator
     {
         return array_filter($operations, function ($value, $key) use ($operation) {
             return $operation === (\is_int($key) ? $value : $key);
-        }, ARRAY_FILTER_USE_BOTH);
+        }, \ARRAY_FILTER_USE_BOTH);
     }
 }

@@ -364,7 +364,7 @@ JSON
      */
     public function printCollectionJsonSchema(string $name)
     {
-        echo json_encode($this->schemaGenerator->generate($this->helper->getReflectionClass($name), ['collection' => true, 'root' => true]), JSON_PRETTY_PRINT);
+        echo json_encode($this->schemaGenerator->generate($this->helper->getReflectionClass($name), ['collection' => true, 'root' => true]), \JSON_PRETTY_PRINT);
     }
 
     /**
@@ -372,7 +372,7 @@ JSON
      */
     public function printItemJsonSchema(string $name)
     {
-        echo json_encode($this->schemaGenerator->generate($this->helper->getReflectionClass($name), ['collection' => false, 'root' => true]), JSON_PRETTY_PRINT);
+        echo json_encode($this->schemaGenerator->generate($this->helper->getReflectionClass($name), ['collection' => false, 'root' => true]), \JSON_PRETTY_PRINT);
     }
 
     /**
@@ -380,7 +380,7 @@ JSON
      */
     public function printJsonData()
     {
-        echo json_encode($this->lastRequestJson, JSON_PRETTY_PRINT);
+        echo json_encode($this->lastRequestJson, \JSON_PRETTY_PRINT);
     }
 
     private function findObject(string $name, $value)
