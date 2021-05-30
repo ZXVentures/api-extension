@@ -94,7 +94,7 @@ final class ObjectSchemaGenerator implements SchemaGeneratorInterface, SchemaGen
             $context['depth'] = 0;
         }
         if ($context['depth'] > self::MAX_DEPTH) {
-            throw new MaxDepthException(sprintf('Maximum depth of %d has been reached. This could be caused by a circular reference due to serialization groups.%sPath: %s', self::MAX_DEPTH, PHP_EOL, implode('->', $this->path)));
+            throw new MaxDepthException(sprintf('Maximum depth of %d has been reached. This could be caused by a circular reference due to serialization groups.%sPath: %s', self::MAX_DEPTH, \PHP_EOL, implode('->', $this->path)));
         }
         ++$context['depth'];
         $className = $reflectionClass->name;

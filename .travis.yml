@@ -13,9 +13,8 @@ env:
     - DEPENDENCIES='beta'
 
 php:
-    - 7.0
-    - 7.1
     - 7.2
+    - 7.4
 
 install:
     - if [[ $DEPENDENCIES = 'beta' ]]; then composer config minimum-stability beta; fi
